@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>An Interactive Guide to Understanding Bonds</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;70ax_800&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals with Trustworthy Blue Accent -->
+    <!-- Application Structure Plan: A multi-section, single-page application with a persistent top navigation bar allowing non-linear exploration. The structure flows from fundamental concepts to practical applications: 1) A 'Home' section defines bonds vs. stocks. 2) An 'Anatomy' section uses an interactive diagram to explain Principal, Coupon, and Maturity. 3) A 'Lifecycle' section simulates holding a bond vs. selling it on the secondary market. 4) A 'Market Explorer' uses an interactive chart to compare the main U.S. bond types, visualizing the 'Safety vs. Yield' trade-off. 5) A 'Risk Simulator' makes abstract risks (Interest Rate, Inflation, Credit) tangible with interactive controls. 6) A 'Portfolio Balancer' section visualizes the diversification benefit during a market downturn. This task-oriented, interactive structure was chosen over a linear text format to enhance user engagement, facilitate understanding of complex relationships (like the interest rate see-saw), and allow users to explore topics based on their own curiosity, which is a more effective learning model. -->
+    <!-- Visualization & Content Choices: 1. Bond Anatomy: (Goal: Inform) An interactive HTML diagram with pop-up explanations on click. Justification: More engaging than static text. Method: Vanilla JS. 2. Interest Rate Risk: (Goal: Demonstrate Relationship) A slider-controlled Chart.js line chart showing the inverse bond price/interest rate relationship. Justification: Makes the abstract 'see-saw' effect concrete and interactive. Method: Chart.js, Vanilla JS. 3. Bond Type Comparison: (Goal: Compare) A Chart.js bubble chart plotting Yield vs. Safety for different bond types. Justification: Distills the complex 'trilemma' from the report into a single, intuitive visual. Method: Chart.js, Vanilla JS. 4. Diversification: (Goal: Demonstrate Relationship) A Chart.js line chart with a button to simulate a market downturn, showing stocks falling while bonds hold steady. Justification: Provides a memorable "aha!" moment about portfolio balancing. Method: Chart.js, Vanilla JS. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+            color: #212529;
+        }
+        .nav-link {
+            transition: color 0.3s ease, border-bottom-color 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #0d6efd;
+            border-bottom-color: #0d6efd;
+        }
+        .section-card {
+            background-color: #ffffff;
+            border: 1px solid #dee2e6;
+        }
+        .interactive-element {
+            border: 2px dashed #adb5bd;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .interactive-element:hover, .interactive-element.active {
+            border-color: #0d6efd;
+            background-color: #e7f1ff;
+            transform: scale(1.02);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 40vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+        .btn-secondary:hover {
+            background-color: #5c636a;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header & Navigation -->
+    <header id="header" class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm border-b border-gray-200">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <a href="#home" class="text-xl font-bold text-gray-800">Bond Basics</a>
+            <div class="hidden md:flex space-x-8">
+                <a href="#anatomy" class="nav-link pb-1">Anatomy</a>
+                <a href="#market" class="nav-link pb-1">Market</a>
+                <a href="#risks" class="nav-link pb-1">Risks</a>
+                <a href="#balancer" class="nav-link pb-1">Balancer</a>
+            </div>
+            <button id="mobile-menu-button" class="md:hidden p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                </svg>
+            </button>
+        </nav>
+        <div id="mobile-menu" class="hidden md:hidden">
+            <a href="#anatomy" class="block py-2 px-4 text-sm hover:bg-gray-200">Anatomy</a>
+            <a href="#market" class="block py-2 px-4 text-sm hover:bg-gray-200">Market</a>
+            <a href="#risks" class="block py-2 px-4 text-sm hover:bg-gray-200">Risks</a>
+            <a href="#balancer" class="block py-2 px-4 text-sm hover:bg-gray-200">Balancer</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-6 py-8 md:py-12">
+
+        <!-- Home Section -->
+        <section id="home" class="text-center mb-16 md:mb-24">
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-4 text-gray-900">What is a Bond?</h1>
+            <p class="max-w-3xl mx-auto text-lg text-gray-600 mb-8">
+                In simple terms, a bond is a loan. When you buy a bond, you're lending money to a government or a corporation. In return, they promise to pay you back in full on a specific date, while making regular interest payments along the way.
+            </p>
+            <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <div class="section-card rounded-xl p-6 shadow-lg text-left">
+                    <h3 class="text-2xl font-bold mb-3">📈 Stocks: You're an Owner</h3>
+                    <p class="text-gray-700">Buying a stock makes you a part-owner of a company. Your fortune is tied to the company's success. The potential for reward is high, but so is the risk.</p>
+                </div>
+                <div class="section-card rounded-xl p-6 shadow-lg text-left">
+                    <h3 class="text-2xl font-bold mb-3">💵 Bonds: You're a Lender</h3>
+                    <p class="text-gray-700">Buying a bond makes you a lender. Your return is a series of fixed payments and your original loan back. This makes bonds lower-risk and a source of predictable income.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Anatomy Section -->
+        <section id="anatomy" class="mb-16 md:mb-24">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900">The Anatomy of a Bond</h2>
+                <p class="max-w-2xl mx-auto text-lg text-gray-600 mt-2">Every bond is defined by three core components. Click on each part of the bond below to learn what it means and how it works.</p>
+            </div>
+            <div class="section-card rounded-xl p-6 md:p-8 shadow-lg max-w-4xl mx-auto">
+                <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 md:space-x-4">
+                    <div id="anatomy-principal" class="interactive-element p-4 rounded-lg text-center w-full md:w-1/3">
+                        <div class="text-3xl font-bold text-blue-600">$1,000</div>
+                        <div class="text-lg font-semibold">Principal</div>
+                    </div>
+                     <div class="text-4xl font-light text-gray-300">+</div>
+                    <div id="anatomy-coupon" class="interactive-element p-4 rounded-lg text-center w-full md:w-1/3">
+                        <div class="text-3xl font-bold text-green-600">5%</div>
+                        <div class="text-lg font-semibold">Coupon</div>
+                    </div>
+                     <div class="text-4xl font-light text-gray-300">→</div>
+                    <div id="anatomy-maturity" class="interactive-element p-4 rounded-lg text-center w-full md:w-1/3">
+                        <div class="text-3xl font-bold text-red-600">10 Years</div>
+                        <div class="text-lg font-semibold">Maturity</div>
+                    </div>
+                </div>
+                <div id="anatomy-explanation" class="mt-6 p-4 bg-gray-100 rounded-lg min-h-[100px] flex items-center justify-center">
+                    <p class="text-gray-700 text-center italic">Click on an element above to see its description.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Market Explorer Section -->
+        <section id="market" class="mb-16 md:mb-24">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900">Exploring the Bond Market</h2>
+                <p class="max-w-3xl mx-auto text-lg text-gray-600 mt-2">The U.S. bond market is vast, but it's dominated by three main issuers. Each offers a different balance of Safety, Yield (potential return), and Tax Benefits. This interactive chart helps you visualize that trade-off.</p>
+            </div>
+            <div class="flex flex-col lg:flex-row gap-8">
+                <div class="lg:w-1/3 space-y-4">
+                    <div id="market-treasury" class="section-card rounded-xl p-6 shadow-lg cursor-pointer transition-all duration-200 border-2 border-blue-500">
+                        <h3 class="text-xl font-bold mb-2">U.S. Treasuries</h3>
+                        <p class="text-gray-600 text-sm">Issued by the federal government. Considered the safest investment in the world, with interest exempt from state/local taxes.</p>
+                    </div>
+                    <div id="market-muni" class="section-card rounded-xl p-6 shadow-lg cursor-pointer transition-all duration-200 border-2 border-transparent hover:border-blue-500">
+                        <h3 class="text-xl font-bold mb-2">Municipal Bonds ("Munis")</h3>
+                        <p class="text-gray-600 text-sm">Issued by states and cities. Their main appeal is that interest is usually exempt from federal taxes, making them great for high-income earners.</p>
+                    </div>
+                    <div id="market-corp" class="section-card rounded-xl p-6 shadow-lg cursor-pointer transition-all duration-200 border-2 border-transparent hover:border-blue-500">
+                        <h3 class="text-xl font-bold mb-2">Corporate Bonds</h3>
+                        <p class="text-gray-600 text-sm">Issued by companies. They offer higher yields to compensate for greater risk, as repayment depends on the company's financial health.</p>
+                    </div>
+                </div>
+                <div class="lg:w-2/3 section-card rounded-xl p-4 md:p-6 shadow-lg">
+                    <div class="chart-container h-[400px] max-h-[50vh]">
+                        <canvas id="marketChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Risks Section -->
+        <section id="risks" class="mb-16 md:mb-24">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900">Simulating Bond Risks</h2>
+                <p class="max-w-3xl mx-auto text-lg text-gray-600 mt-2">Bonds are safer than stocks, but not risk-free. Understanding the main risks—Interest Rate, Inflation, and Credit—is key. Use these interactive tools to see how they work.</p>
+            </div>
+            
+            <div class="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Interest Rate Risk -->
+                <div class="section-card rounded-xl p-6 shadow-lg">
+                    <h3 class="text-xl font-bold mb-2">Interest Rate Risk: The See-Saw</h3>
+                    <p class="text-gray-600 mb-4">When market interest rates rise, the price of your existing, lower-paying bond falls. Use the slider to see this inverse relationship in action.</p>
+                    <div class="chart-container h-64">
+                        <canvas id="interestRateRiskChart"></canvas>
+                    </div>
+                    <div class="mt-4">
+                        <label for="marketRateSlider" class="block mb-2 font-medium text-gray-700">Market Interest Rate: <span id="marketRateValue" class="font-bold text-blue-600">5%</span></label>
+                        <input id="marketRateSlider" type="range" min="1" max="10" value="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                </div>
+
+                <!-- Inflation and Credit Risk -->
+                <div class="space-y-8">
+                    <div class="section-card rounded-xl p-6 shadow-lg">
+                        <h3 class="text-xl font-bold mb-2">Inflation Risk: The Value-Eroder</h3>
+                        <p class="text-gray-600 mb-4">Your bond pays a fixed coupon. If inflation rises, that fixed income buys less over time. Your 'real return' can even become negative.</p>
+                        <div class="flex justify-around items-center bg-gray-50 p-4 rounded-lg">
+                            <div>
+                                <div class="text-2xl font-bold text-green-600">3%</div>
+                                <div class="text-sm font-semibold">Your Bond's Coupon</div>
+                            </div>
+                            <div class="text-4xl font-light text-gray-400">-</div>
+                            <div>
+                                <div id="inflationRate" class="text-2xl font-bold text-red-600">4%</div>
+                                <div class="text-sm font-semibold">Inflation Rate</div>
+                            </div>
+                            <div class="text-4xl font-light text-gray-400">=</div>
+                             <div>
+                                <div id="realReturn" class="text-2xl font-bold text-red-600">-1%</div>
+                                <div class="text-sm font-semibold">Your Real Return</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="section-card rounded-xl p-6 shadow-lg">
+                        <h3 class="text-xl font-bold mb-2">Credit Risk: The Risk of Default</h3>
+                        <p class="text-gray-600 mb-4">This is the risk the issuer can't pay you back. High-quality issuers (AAA) are very safe but offer lower yields. Lower-quality issuers offer higher yields to compensate for higher default risk.</p>
+                        <div class="w-full bg-gray-200 rounded-full h-4 relative">
+                            <div id="creditRiskBar" class="bg-gradient-to-r from-cyan-400 to-red-500 h-4 rounded-full transition-all duration-300" style="width: 20%;"></div>
+                        </div>
+                        <div class="flex justify-between text-xs mt-1 font-medium">
+                            <span>Safe (AAA)</span>
+                            <span>Risky (Junk)</span>
+                        </div>
+                        <div class="flex justify-center space-x-2 mt-4" id="creditButtons">
+                            <button class="btn-secondary px-3 py-1 text-sm rounded-full" data-risk="20">AAA</button>
+                            <button class="btn-secondary px-3 py-1 text-sm rounded-full" data-risk="40">A</button>
+                            <button class="btn-secondary px-3 py-1 text-sm rounded-full" data-risk="60">BBB</button>
+                            <button class="btn-secondary px-3 py-1 text-sm rounded-full" data-risk="85">Junk</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Balancer Section -->
+        <section id="balancer" class="mb-16 md:mb-24">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900">The Portfolio Balancer</h2>
+                <p class="max-w-3xl mx-auto text-lg text-gray-600 mt-2">One of the most powerful roles of bonds is to provide stability when stocks are volatile. During economic fear, investors often sell stocks and buy safe bonds. This "flight to safety" cushions your portfolio.</p>
+            </div>
+            <div class="section-card rounded-xl p-4 md:p-6 shadow-lg">
+                 <div class="chart-container h-80">
+                    <canvas id="balancerChart"></canvas>
+                </div>
+                <div class="text-center mt-6">
+                    <button id="simulateCrashBtn" class="btn-primary font-bold py-2 px-6 rounded-lg">Simulate Market Downturn</button>
+                    <button id="resetCrashBtn" class="btn-secondary font-bold py-2 px-6 rounded-lg hidden">Reset Simulation</button>
+                </div>
+            </div>
+        </section>
+        
+    </main>
+    
+    <footer class="bg-gray-800 text-white mt-12">
+        <div class="container mx-auto px-6 py-4 text-center">
+            <p>This interactive guide is for educational purposes only and not financial advice.</p>
+            <p class="text-sm text-gray-400 mt-1">&copy; 2025 Bond Basics. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    const appData = {
+        anatomy: {
+            principal: {
+                title: "Principal (or Face Value)",
+                text: "This is the original loan amount the issuer borrows and promises to repay on the maturity date. A common face value for bonds in the U.S. is $1,000."
+            },
+            coupon: {
+                title: "Coupon Rate",
+                text: "This is the annual interest rate paid to the investor, expressed as a percentage of the principal. A 5% coupon on a $1,000 bond means you receive $50 in interest per year, usually paid in two $25 installments."
+            },
+            maturity: {
+                title: "Maturity Date",
+                text: "This is the 'pay-back' day when the bond's term ends. The issuer repays the principal in full, and the bond ceases to exist. Terms can range from a few weeks to 30 years or more."
+            }
+        },
+        marketChart: {
+            treasury: {
+                label: 'U.S. Treasury',
+                data: [{ x: 4.5, y: 9.5, r: 15 }], // x=Yield, y=Safety, r=size
+                description: 'U.S. Treasuries are the benchmark for safety. Backed by the "full faith and credit" of the U.S. government, they have virtually zero default risk, but this safety means they offer a more moderate yield.'
+            },
+            muni: {
+                label: 'Municipal Bond (High-Grade)',
+                data: [{ x: 4.0, y: 8.5, r: 15 }],
+                description: 'High-quality municipal bonds are very safe, often backed by the taxing power of a state or city. Their main draw is tax benefits, which means their stated yield is often lower than corporates, but the after-tax return can be higher.'
+            },
+            corpInv: {
+                label: 'Corporate (Investment Grade)',
+                data: [{ x: 5.5, y: 7.0, r: 20 }],
+                description: 'Issued by stable, profitable companies. They offer a higher yield than government bonds to compensate for a moderate amount of credit risk. Default is unlikely but possible.'
+            },
+            corpJunk: {
+                label: 'Corporate (High-Yield/Junk)',
+                data: [{ x: 8.5, y: 3.0, r: 25 }],
+                description: 'Issued by less financially secure companies. They must offer a much higher yield to attract investors, compensating for a significantly higher risk of the company defaulting on its payments.'
+            }
+        },
+        balancerChart: {
+            initial: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+                stocks: [100, 105, 108, 112, 115, 118, 122],
+                bonds: [100, 100.5, 101, 101.5, 102, 102.5, 103]
+            },
+            crash: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+                stocks: [100, 105, 108, 112, 115, 118, 122, 110, 95, 85],
+                bonds: [100, 100.5, 101, 101.5, 102, 102.5, 103, 104, 105, 105.5]
+            }
+        }
+    };
+    
+    // Mobile menu toggle
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    mobileMenuButton.addEventListener('click', () => {
+        mobileMenu.classList.toggle('hidden');
+    });
+
+    // Active Nav Link Scrolling
+    const navLinks = document.querySelectorAll('.nav-link');
+    const sections = document.querySelectorAll('main section');
+    window.addEventListener('scroll', () => {
+        let current = '';
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            if (pageYOffset >= sectionTop - 60) {
+                current = section.getAttribute('id');
+            }
+        });
+
+        navLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href').substring(1) === current) {
+                link.classList.add('active');
+            }
+        });
+    });
+
+    // --- Anatomy Section ---
+    const anatomyExplanation = document.getElementById('anatomy-explanation');
+    const anatomyElements = document.querySelectorAll('.interactive-element');
+    anatomyElements.forEach(el => {
+        el.addEventListener('click', (e) => {
+            const id = e.currentTarget.id.split('-')[1];
+            if (appData.anatomy[id]) {
+                anatomyExplanation.innerHTML = `<h4 class="font-bold text-lg mb-1">${appData.anatomy[id].title}</h4><p class="text-gray-700">${appData.anatomy[id].text}</p>`;
+                
+                anatomyElements.forEach(elem => elem.classList.remove('active'));
+                e.currentTarget.classList.add('active');
+            }
+        });
+    });
+    
+    // --- Market Explorer Section ---
+    const marketCtx = document.getElementById('marketChart').getContext('2d');
+    const marketData = appData.marketChart;
+    const marketChart = new Chart(marketCtx, {
+        type: 'bubble',
+        data: {
+            datasets: [
+                {
+                    label: marketData.treasury.label,
+                    data: marketData.treasury.data,
+                    backgroundColor: 'rgba(13, 110, 253, 0.7)',
+                    borderColor: 'rgba(13, 110, 253, 1)',
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' },
+                title: { display: true, text: 'Bond Market: Safety vs. Yield' },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: (Yield: ${context.raw.x}%, Safety Score: ${context.raw.y}/10)`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    title: { display: true, text: 'Safety (Higher is Better)' },
+                    min: 0,
+                    max: 10
+                },
+                x: {
+                    title: { display: true, text: 'Potential Yield (Higher is Better)' },
+                    min: 2,
+                    max: 10
+                }
+            }
+        }
+    });
+
+    const marketButtons = {
+        'market-treasury': { data: marketData.treasury, color: 'rgba(13, 110, 253, 0.7)' },
+        'market-muni': { data: marketData.muni, color: 'rgba(25, 135, 84, 0.7)' },
+        'market-corp': { data: marketData.corpInv, color: 'rgba(255, 193, 7, 0.7)' }
+    };
+
+    document.querySelectorAll('#market .section-card[id]').forEach(card => {
+        card.addEventListener('click', () => {
+            const id = card.id;
+            
+            document.querySelectorAll('#market .section-card[id]').forEach(c => c.classList.replace('border-blue-500','border-transparent'));
+            card.classList.replace('border-transparent','border-blue-500');
+
+            if(marketButtons[id]){
+                const newDataset = {
+                    label: marketButtons[id].data.label,
+                    data: marketButtons[id].data.data,
+                    backgroundColor: marketButtons[id].color,
+                    borderColor: marketButtons[id].color.replace('0.7', '1'),
+                };
+                if(id === 'market-corp'){
+                    newDataset.label = marketData.corpInv.label;
+                    newDataset.data = marketData.corpInv.data;
+                    const highYieldDataset = {
+                        label: marketData.corpJunk.label,
+                        data: marketData.corpJunk.data,
+                        backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                        borderColor: 'rgba(220, 53, 69, 1)',
+                    };
+                    marketChart.data.datasets = [newDataset, highYieldDataset];
+                } else {
+                    marketChart.data.datasets = [newDataset];
+                }
+
+                marketChart.update();
+            }
+        })
+    });
+
+    // --- Risk Simulator Section ---
+    // Interest Rate Risk
+    const interestRateCtx = document.getElementById('interestRateRiskChart').getContext('2d');
+    const interestRateSlider = document.getElementById('marketRateSlider');
+    const marketRateValue = document.getElementById('marketRateValue');
+
+    const interestRateChart = new Chart(interestRateCtx, {
+        type: 'line',
+        data: {
+            labels: ['Existing Bond'],
+            datasets: [{
+                label: 'Bond Price',
+                data: [1000],
+                backgroundColor: 'rgba(13, 110, 253, 0.2)',
+                borderColor: 'rgba(13, 110, 253, 1)',
+                fill: true,
+                stepped: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: false, min: 800, max: 1200, title: {display: true, text: 'Bond Price ($)'} } },
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    interestRateSlider.addEventListener('input', (e) => {
+        const marketRate = parseFloat(e.target.value);
+        marketRateValue.textContent = marketRate.toFixed(1) + '%';
+        const originalRate = 5.0;
+        const priceChange = (originalRate - marketRate) * 20;
+        const newPrice = 1000 + priceChange;
+        interestRateChart.data.datasets[0].data[0] = newPrice;
+        interestRateChart.update();
+    });
+
+    // Credit Risk
+    const creditRiskBar = document.getElementById('creditRiskBar');
+    document.getElementById('creditButtons').addEventListener('click', (e) => {
+        if(e.target.tagName === 'BUTTON'){
+            const riskValue = e.target.dataset.risk;
+            creditRiskBar.style.width = riskValue + '%';
+        }
+    });
+    
+    // --- Balancer Section ---
+    const balancerCtx = document.getElementById('balancerChart').getContext('2d');
+    const balancerData = appData.balancerChart;
+    const balancerChart = new Chart(balancerCtx, {
+        type: 'line',
+        data: {
+            labels: balancerData.initial.labels,
+            datasets: [
+                {
+                    label: 'Stocks',
+                    data: balancerData.initial.stocks,
+                    borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                    tension: 0.1
+                },
+                {
+                    label: 'Bonds',
+                    data: balancerData.initial.bonds,
+                    borderColor: 'rgb(54, 162, 235)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    tension: 0.1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: { display: true, text: 'Portfolio Performance' }
+            },
+            scales: {
+                y: { title: { display: true, text: 'Portfolio Value' } }
+            }
+        }
+    });
+
+    const simulateBtn = document.getElementById('simulateCrashBtn');
+    const resetBtn = document.getElementById('resetCrashBtn');
+
+    simulateBtn.addEventListener('click', () => {
+        balancerChart.data.labels = balancerData.crash.labels;
+        balancerChart.data.datasets[0].data = balancerData.crash.stocks;
+        balancerChart.data.datasets[1].data = balancerData.crash.bonds;
+        balancerChart.update();
+        simulateBtn.classList.add('hidden');
+        resetBtn.classList.remove('hidden');
+    });
+
+    resetBtn.addEventListener('click', () => {
+        balancerChart.data.labels = balancerData.initial.labels;
+        balancerChart.data.datasets[0].data = balancerData.initial.stocks;
+        balancerChart.data.datasets[1].data = balancerData.initial.bonds;
+        balancerChart.update();
+        resetBtn.classList.add('hidden');
+        simulateBtn.classList.remove('hidden');
+    });
+});
+</script>
+</body>
+</html>
